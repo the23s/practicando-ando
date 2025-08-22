@@ -29,6 +29,11 @@
             padding: 2rem;
             max-width: 1200px;
             margin: 0 auto;
+            display: none; /* Ocultos por defecto, JS controlará la visibilidad */
+        }
+        
+        .page.active {
+            display: block;
         }
 
         #home-page .header, #detail-page .header {
@@ -81,10 +86,6 @@
         }
 
         /* --- Estilos de la Página de Detalle --- */
-        #detail-page {
-            display: none; /* Oculta por defecto */
-        }
-        
         .detail-content {
             display: grid;
             grid-template-columns: 1fr 1.5fr;
@@ -115,24 +116,10 @@
         }
 
         /* --- LA MAGIA DE PAGE TRANSITIONS API --- */
-
-        /* 1. La propiedad `view-transition-name` es la clave.
-         * Le asigna un nombre único al elemento que queremos que se transforme.
-         * El navegador identificará que la imagen en la galería y la imagen en la
-         * página de detalle son el "mismo" elemento conceptualmente, y creará
-         * una animación de morphing entre sus dos estados (tamaño y posición).
-         * Es CRÍTICO que este nombre sea único para cada elemento en transición.
-        */
         .transition-image {
             view-transition-name: var(--transition-name);
         }
 
-        /* 2. Animaciones para el resto del contenido.
-         * Durante una transición, el navegador crea pseudo-elementos para el
-         * contenido viejo (::view-transition-old) y el nuevo (::view-transition-new).
-         * Aquí, definimos que el contenido viejo se desvanezca y el nuevo aparezca,
-         * creando una transición suave y limpia para todo lo que no sea la imagen.
-        */
         ::view-transition-old(root),
         ::view-transition-new(root) {
             animation-duration: 0.4s;
@@ -147,7 +134,6 @@
             animation-name: fade-in;
         }
         
-        /* Animaciones personalizadas para la entrada y salida del texto */
         ::view-transition-old(detail-text),
         ::view-transition-new(detail-text) {
              animation-duration: 0.3s;
@@ -162,13 +148,11 @@
              animation-name: slide-from-bottom;
         }
 
-
         @keyframes fade-in { from { opacity: 0; } }
         @keyframes fade-out { to { opacity: 0; } }
         @keyframes slide-from-bottom { from { opacity: 0; transform: translateY(30px); } }
         @keyframes slide-to-top { to { opacity: 0; transform: translateY(-30px); } }
 
-        /* Media query para layout en móviles */
         @media (max-width: 768px) {
             .detail-content {
                 grid-template-columns: 1fr;
@@ -178,22 +162,13 @@
 </head>
 <body>
 
-    <!-- Página Principal (Home) -->
     <div id="home-page" class="page">
-        <div class="header">
-            <h1>Galería de Planetas</h1>
-            <p>Haz clic en una imagen para ver la magia de la Page Transitions API.</p>
-        </div>
-        <div class="gallery">
-            <!-- Los elementos se generarán con JavaScript -->
-        </div>
+        <div class="header"><h1>Galería de Planetas</h1><p>Haz clic en una imagen para ver la magia de la Page Transitions API.</p></div>
+        <div class="gallery"></div>
     </div>
 
-    <!-- Página de Detalle -->
     <div id="detail-page" class="page">
-        <div class="header">
-            <a href="#" class="back-button">← Volver</a>
-        </div>
+        <div class="header"><a href="/" class="back-button">← Volver</a></div>
         <div class="detail-content">
             <img id="detail-image" src="" alt="">
             <div class="detail-info">
@@ -205,10 +180,9 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const gallery = document.querySelector('.gallery');
             const homePage = document.getElementById('home-page');
             const detailPage = document.getElementById('detail-page');
-            const backButton = document.querySelector('.back-button');
+            const gallery = document.querySelector('.gallery');
 
             const planetData = [
                 { id: 'tierra', name: 'Tierra', desc: 'Nuestro planeta hogar, un oasis de vida en la inmensidad del cosmos. Lleno de océanos azules, continentes verdes y nubes arremolinadas.', img: 'https://placehold.co/600x400/3498db/ffffff?text=Tierra' },
@@ -217,86 +191,82 @@
                 { id: 'saturno', name: 'Saturno', desc: 'La joya del sistema solar, conocido por sus impresionantes y complejos anillos de hielo y roca. Un gigante gaseoso con decenas de lunas.', img: 'https://placehold.co/600x400/f1c40f/ffffff?text=Saturno' }
             ];
 
-            // --- Poblar la galería inicial ---
+            // --- Función central para actualizar el DOM ---
+            // Esta función decide qué página mostrar basándose en la URL.
+            const updateDOM = (path) => {
+                const planetId = path.substring(1); // Quita el '#'
+                const planet = planetData.find(p => p.id === planetId);
+
+                if (planet) {
+                    // Muestra la página de detalle
+                    document.getElementById('detail-image').src = planet.img;
+                    document.getElementById('detail-title').textContent = planet.name;
+                    document.getElementById('detail-description').textContent = planet.desc;
+                    
+                    const detailImage = document.getElementById('detail-image');
+                    detailImage.classList.add('transition-image');
+                    detailImage.style.setProperty('--transition-name', `planet-image-${planet.id}`);
+                    
+                    const detailText = document.querySelector('.detail-info');
+                    detailText.style.setProperty('view-transition-name', `detail-text-${planet.id}`);
+
+                    homePage.classList.remove('active');
+                    detailPage.classList.add('active');
+                } else {
+                    // Muestra la página de inicio
+                    homePage.classList.add('active');
+                    detailPage.classList.remove('active');
+                }
+            };
+
+            // --- Función de navegación que inicia la transición ---
+            const navigate = (url) => {
+                // Si la API de transiciones no está disponible, navega directamente.
+                if (!document.startViewTransition) {
+                    updateDOM(url);
+                    return;
+                }
+                // Inicia la transición y actualiza el DOM dentro del callback.
+                document.startViewTransition(() => updateDOM(url));
+            };
+
+            // --- Poblar la galería y añadir listeners ---
             planetData.forEach(planet => {
                 const item = document.createElement('a');
                 item.href = `#${planet.id}`;
                 item.classList.add('gallery-item');
                 item.dataset.id = planet.id;
-                
-                // La propiedad --transition-name se usa en el CSS para `view-transition-name`.
-                // Esto asegura que cada imagen tenga un nombre de transición único.
                 item.style.setProperty('--transition-name', `planet-image-${planet.id}`);
-
-                item.innerHTML = `
-                    <img src="${planet.img}" alt="${planet.name}" class="transition-image">
-                    <div class="gallery-item-title">${planet.name}</div>
-                `;
+                item.innerHTML = `<img src="${planet.img}" alt="${planet.name}" class="transition-image"><div class="gallery-item-title">${planet.name}</div>`;
+                
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const newPath = `#${item.dataset.id}`;
+                    // CAMBIO CLAVE: Añade un nuevo estado al historial del navegador.
+                    history.pushState({ path: newPath }, '', newPath);
+                    navigate(newPath);
+                });
                 gallery.appendChild(item);
             });
 
-            const galleryItems = document.querySelectorAll('.gallery-item');
-
-            // --- Función para navegar ---
-            const navigate = (targetId) => {
-                const planet = planetData.find(p => p.id === targetId);
-                if (!planet) return;
-                
-                // Actualizamos el contenido de la página de detalle
-                document.getElementById('detail-image').src = planet.img;
-                document.getElementById('detail-title').textContent = planet.name;
-                document.getElementById('detail-description').textContent = planet.desc;
-                
-                // Asignamos el mismo nombre de transición a la imagen de detalle
-                const detailImage = document.getElementById('detail-image');
-                detailImage.classList.add('transition-image');
-                detailImage.style.setProperty('--transition-name', `planet-image-${planet.id}`);
-                
-                const detailText = document.querySelector('.detail-info');
-                detailText.style.setProperty('view-transition-name', `detail-text-${planet.id}`);
-
-                // Intercambiamos la visibilidad de las páginas
-                homePage.style.display = 'none';
-                detailPage.style.display = 'block';
-            };
-
-            // --- Manejar clics en la galería ---
-            galleryItems.forEach(item => {
-                item.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const targetId = item.dataset.id;
-
-                    // `document.startViewTransition` es la función mágica.
-                    // 1. El navegador toma una "foto" del estado actual de la página.
-                    // 2. Ejecutamos el código dentro del callback (actualizar el DOM).
-                    // 3. El navegador toma una "foto" del nuevo estado de la página.
-                    // 4. El navegador calcula la diferencia y crea una transición fluida,
-                    //    manejada por el Compositor Thread para un rendimiento máximo.
-                    if (!document.startViewTransition) {
-                        navigate(targetId); // Fallback para navegadores sin soporte
-                        return;
-                    }
-                    
-                    document.startViewTransition(() => navigate(targetId));
-                });
-            });
-
-            // --- Manejar el botón de volver ---
-            backButton.addEventListener('click', (e) => {
+            // --- Listener para el botón de volver en la página de detalle ---
+            document.querySelector('.back-button').addEventListener('click', (e) => {
                 e.preventDefault();
-                
-                const goBack = () => {
-                    homePage.style.display = 'block';
-                    detailPage.style.display = 'none';
-                };
-                
-                if (!document.startViewTransition) {
-                    goBack();
-                    return;
-                }
-
-                document.startViewTransition(() => goBack());
+                // CAMBIO CLAVE: En lugar de manipular el DOM, simplemente le decimos al historial que retroceda.
+                history.back();
             });
+
+            // --- Listener para el evento popstate (botones de navegador/ratón) ---
+            // CAMBIO CLAVE: Este es el cerebro que reacciona a los cambios en el historial.
+            window.addEventListener('popstate', (e) => {
+                // Cuando el usuario usa los botones de retroceso/avance,
+                // llamamos a nuestra función de navegación para actualizar la vista.
+                navigate(location.hash);
+            });
+
+            // --- Estado inicial al cargar la página ---
+            // Muestra la página correcta basándose en la URL con la que se cargó.
+            updateDOM(location.hash);
         });
     </script>
 </body>
