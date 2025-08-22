@@ -3,233 +3,301 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BigoteMan - Soluciones Digitales de Prestigio</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='white' d='M8 11V9a1 1 0 0 1 2 0v2a1 1 0 0 1-2 0zm7 1a1 1 0 0 0 1-1V9a1 1 0 0 0-2 0v2a1 1 0 0 0 1 1zm8 0A11 11 0 1 1 12 1a11.013 11.013 0 0 1 11 11zm-2 0a9 9 0 1 0-9 9 9.01 9.01 0 0 0 9-9zm-9 1.782A3.044 3.044 0 0 0 10 13c-2 0-2 1.333-4 1.333 0 0 2 2.667 4 2.667a3.044 3.044 0 0 0 2-.782A3.044 3.044 0 0 0 14 17c2 0 4-2.667 4-2.667-2 0-2-1.333-4-1.333a3.044 3.044 0 0 0-2 .782z'/%3E%3C/svg%3E">
+    <title>Demo: Page Transitions API</title>
     <style>
-        html {
-            scroll-behavior: smooth;
+        /* --- Estilos Base y Estética --- */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        :root {
+            --background-color: #0c0c0c;
+            --card-background: #181818;
+            --text-color: #e0e0e0;
+            --accent-color: #00aaff;
+            --border-color: #2a2a2a;
         }
+
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #111827; /* Gris oscuro http://www.w3.org/2000/svg para el fondo */
-            color: #f3f4f6; /* Texto claro */
-        }
-        
-        .snap-container {
-            scroll-snap-type: y mandatory;
-            overflow-y: scroll;
-            height: 100vh;
-
-            scrollbar-width: none;
+            margin: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            overscroll-behavior: none;
         }
 
-        .full-screen-section {
-            height: 100vh;
-            min-height: 100vh;
-            scroll-snap-align: start;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+        /* --- Contenedores de Página --- */
+        .page {
             padding: 2rem;
-            position: relative;
-            overflow: hidden; /* Para contener efectos de fondo */
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
+        #home-page .header, #detail-page .header {
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
         
+        h1 {
+            font-size: 2.5rem;
+            margin: 0;
+        }
+        
+        p {
+            color: #a0a0a0;
+        }
+
+        /* --- Estilos de la Galería (Página Principal) --- */
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .gallery-item {
+            background-color: var(--card-background);
+            border-radius: 12px;
+            overflow: hidden;
+            text-decoration: none;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .gallery-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .gallery-item-title {
+            padding: 1rem;
+            font-weight: 600;
+        }
+
+        /* --- Estilos de la Página de Detalle --- */
+        #detail-page {
+            display: none; /* Oculta por defecto */
+        }
+        
+        .detail-content {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 2rem;
+            align-items: start;
+        }
+        
+        .detail-content img {
+            width: 100%;
+            border-radius: 12px;
+        }
+        
+        .detail-info h2 {
+            font-size: 2.5rem;
+            margin: 0 0 1rem 0;
+            color: var(--accent-color);
+        }
+
+        .back-button {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background-color: var(--accent-color);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-top: 2rem;
+        }
+
+        /* --- LA MAGIA DE PAGE TRANSITIONS API --- */
+
+        /* 1. La propiedad `view-transition-name` es la clave.
+         * Le asigna un nombre único al elemento que queremos que se transforme.
+         * El navegador identificará que la imagen en la galería y la imagen en la
+         * página de detalle son el "mismo" elemento conceptualmente, y creará
+         * una animación de morphing entre sus dos estados (tamaño y posición).
+         * Es CRÍTICO que este nombre sea único para cada elemento en transición.
+        */
+        .transition-image {
+            view-transition-name: var(--transition-name);
+        }
+
+        /* 2. Animaciones para el resto del contenido.
+         * Durante una transición, el navegador crea pseudo-elementos para el
+         * contenido viejo (::view-transition-old) y el nuevo (::view-transition-new).
+         * Aquí, definimos que el contenido viejo se desvanezca y el nuevo aparezca,
+         * creando una transición suave y limpia para todo lo que no sea la imagen.
+        */
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+            animation-duration: 0.4s;
+            animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        ::view-transition-old(root) {
+            animation-name: fade-out;
+        }
+
+        ::view-transition-new(root) {
+            animation-name: fade-in;
+        }
+        
+        /* Animaciones personalizadas para la entrada y salida del texto */
+        ::view-transition-old(detail-text),
+        ::view-transition-new(detail-text) {
+             animation-duration: 0.3s;
+             animation-timing-function: ease-in-out;
+        }
+        
+        ::view-transition-old(detail-text) {
+             animation-name: slide-to-top;
+        }
+        
+        ::view-transition-new(detail-text) {
+             animation-name: slide-from-bottom;
+        }
+
+
+        @keyframes fade-in { from { opacity: 0; } }
+        @keyframes fade-out { to { opacity: 0; } }
+        @keyframes slide-from-bottom { from { opacity: 0; transform: translateY(30px); } }
+        @keyframes slide-to-top { to { opacity: 0; transform: translateY(-30px); } }
+
+        /* Media query para layout en móviles */
+        @media (max-width: 768px) {
+            .detail-content {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100">
+<body>
 
-    <div class="snap-container">
-        <section id="inicio" class="full-screen-section hero-pattern">
-            
-        </section>
-
-        <section id="productos" class="full-screen-section bg-gray-800">
-            <div class="container mx-auto px-6 text-center">
-                <h2 class="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">Todo lo que Necesitas, en un Solo Lugar</h2>
-                <p class="text-lg text-gray-400 mb-12">Desde contenido multimedia hasta deportes en vivo. Lo tenemos todo cubierto.</p>
-                <div class="grid md:grid-cols-3 gap-6">
-                    <div class="bg-gray-900 p-8 rounded-xl shadow-lg border border-white/10 transition-all duration-300 hover:border-cyan-400/50 hover:-translate-y-2">
-                        <div class="mb-4 h-12 w-12 mx-auto flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="48" height="48" viewBox="0 0 48 48"><path fill="#FF3D00" d="M43.2,33.9c-0.4,2.1-2.1,3.7-4.2,4c-3.3,0.5-8.8,1.1-15,1.1c-6.1,0-11.6-0.6-15-1.1c-2.1-0.3-3.8-1.9-4.2-4C4.4,31.6,4,28.2,4,24c0-4.2,0.4-7.6,0.8-9.9c0.4-2.1,2.1-3.7,4.2-4C12.3,9.6,17.8,9,24,9c6.2,0,11.6,0.6,15,1.1c2.1,0.3,3.8,1.9,4.2,4c0.4,2.3,0.9,5.7,0.9,9.9C44,28.2,43.6,31.6,43.2,33.9z"></path><path fill="#FFF" d="M20 31L20 17 32 24z"></path></svg>
-                        </div>
-                        <h3 class="text-xl font-semibold text-white mb-2">Videos Explicativos</h3>
-                        <p class="text-gray-400 font-light">Creamos contenido audiovisual atractivo para promocionar tus productos.</p>
-                    </div>
-                    <div class="bg-gray-900 p-8 rounded-xl shadow-lg border border-white/10 transition-all duration-300 hover:border-cyan-400/50 hover:-translate-y-2">
-                         <div class="mb-4 h-12 w-12 mx-auto flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="48" height="48" viewBox="0 0 48 48"><path fill="#8343c8" d="M41.754,27.958l-8.455,9.699C33.109,37.875,32.834,38,32.545,38H26.37	c-0.239,0-0.47,0.085-0.651,0.241l-6.438,5.519C19.1,43.915,18.869,44,18.63,44H17c-0.552,0-1-0.448-1-1v-4c0-0.552-0.448-1-1-1H7	c-0.552,0-1-0.448-1-1V15.943c0-0.156,0.036-0.309,0.106-0.448l3.981-7.943C10.257,7.214,10.603,7,10.981,7H41c0.552,0,1,0.448,1,1	v19.301C42,27.543,41.913,27.776,41.754,27.958z"></path><path fill="#fafafa" d="M39,26.369c-1.667,1.877-3.333,3.754-5,5.631c-2.333,0-4.667,0-7,0c-2.333,2-4.667,4-7,6c0-2,0-4,0-6	c-2.667-0.008-5.333-0.016-8-0.024C12,24.65,12,17.325,12,10c9,0,18,0,27,0C39,15.456,39,20.912,39,26.369z"></path><rect width="3" height="10" x="21" y="16" fill="#8343c8"></rect><rect width="3" height="10" x="30" y="16" fill="#8343c8"></rect></svg>
-                        </div>
-                        <h3 class="text-xl font-semibold text-white mb-2">Streaming en Vivo</h3>
-                        <p class="text-gray-400 font-light">Transmitimos tus eventos y contenido en tiempo real a tu audiencia global.</p>
-                    </div>
-                    <div class="bg-gray-900 p-8 rounded-xl shadow-lg border border-white/10 transition-all duration-300 hover:border-cyan-400/50 hover:-translate-y-2">
-                        <div class="text-red-600 mb-4 h-12 w-12 mx-auto flex items-center justify-center">
-                           <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="#f44336"></circle><polygon fill="#fff" points="21,29 29,24 21,19"></polygon><path fill="none" stroke="#fff" stroke-width="2" stroke-miterlimit="10" d="M24,14c5.5,0,10,4.476,10,10s-4.476,10-10,10	s-10-4.476-10-10S18.5,14,24,14"></path></svg>
-                        </div>
-                        <h3 class="text-xl font-semibold text-white mb-2">Música y Audio</h3>
-                        <p class="text-gray-400 font-light">Producimos y distribuimos podcasts y música de alta calidad.</p>
-                    </div>
-                    <div class="bg-gray-900 p-8 rounded-xl shadow-lg border border-white/10 transition-all duration-300 hover:border-cyan-400/50 hover:-translate-y-2">
-                        <div class="mb-4 h-12 w-12 mx-auto flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="48" height="48" viewBox="0 0 48 48"><path fill="#ffc107" d="M24,22.5C24,16.701,19.299,12,13.5,12S3,16.701,3,22.5c0,0,0,0.339,0,0.5c0,0.552,0.448,1,1,1	s20,0,20,0s0-0.448,0-1C24,22.839,24,22.5,24,22.5z"></path><path fill="#4caf50" d="M22.5,24C16.701,24,12,28.701,12,34.5S16.701,45,22.5,45c0,0,0.339,0,0.5,0c0.552,0,1-0.448-1-1	s0-20,0-20s-0.448,0-1,0C22.839,24,22.5,24,22.5,24z"></path><path fill="#1976d2" d="M24,25.5C24,31.299,28.701,36,34.5,36S45,31.299,45,25.5c0,0,0-0.339,0-0.5c0-0.552-0.448-1-1-1	s-20,0-20,0s0,0.448,0,1C24,25.161,24,25.5,24,25.5z"></path><path fill="#ff3d00" d="M25.5,24C31.299,24,36,19.299,36,13.5S31.299,3,25.5,3c0,0-0.339,0-0.5,0c-0.552,0-1,0.448-1,1	s0,20,0,20s0.448,0,1,0C25.161,24,25.5,24,25.5,24z"></path></svg>
-                        </div>
-                        <h3 class="text-xl font-semibold text-white mb-2">Almacenamiento de Fotos</h3>
-                        <p class="text-gray-400 font-light">Guarda y organiza tus recuerdos visuales de forma segura y accesible.</p>
-                    </div>
-                     <div class="bg-gray-900 p-8 rounded-xl shadow-lg border border-white/10 transition-all duration-300 hover:border-cyan-400/50 hover:-translate-y-2">
-                        <div class="text-red-600 mb-4 h-12 w-12 mx-auto flex items-center justify-center">
-                           <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="48" height="48" viewBox="0 0 48 48"><path fill="#e50914" d="M5 18c.7 0 1.3 0 2 0 0 4.1 0 8.1 0 12.2-.8.1-1.6.2-2.3.3-1-2.5-2.7-6.8-2.7-6.8S2 28 2 30.8c.4 0-.2 0-2 .3 0-4.3 0-8.7 0-13 .8 0 2 0 2 0l3 7.3C5 25.4 5 20.8 5 18zM14.7 20c0-.6 0-1.4 0-2-1.9 0-3.8 0-5.7 0 0 4 0 8 0 12 1.9-.2 3.8-.4 5.7-.6 0-.6 0-1.4 0-2-1.2.1-2.4.1-3.7.4 0-1.1 0-1.7 0-2.8.9 0 2.1 0 3 0 0-.6 0-1.4 0-2-.9 0-2.1 0-3 0 0-1.1 0-1.9 0-3C11.6 20.1 14.2 20.1 14.7 20zM16 20c.1 0 1.9 0 2 0 0 3.2 0 6 0 9.2.7 0 1.3 0 2-.1 0-3.2 0-5.9 0-9.1.7 0 1.3 0 2 0 0-.6 0-1.4 0-2-2.1 0-3.9 0-6 0C16 18.6 16 19.4 16 20zM28.6 18c-1.9 0-3.7 0-5.6 0 0 3.8 0 7.2 0 11 .2 0 .4 0 .6 0 .4 0 .9 0 1.4 0 0-1.6 0-2.4 0-4 .1 0 2.4 0 2.7 0 0-.6 0-1.4 0-2-.3 0-2.6 0-2.7 0 0-1 0-2 0-3 .2 0 3.1 0 3.6 0C28.6 19.5 28.6 18.6 28.6 18zM32 27.5c0-3.3 0-6.2 0-9.5-.7 0-1.3 0-2 0 0 3.8 0 7.4 0 11.2 1.8.1 3.6.2 5.4.4 0-.6 0-1.3 0-1.9C34.3 27.6 33.1 27.5 32 27.5zM37 29.7c.7.1 1.3.1 2 .2 0-4 0-7.9 0-11.9-.7 0-1.3 0-2 0C37 22 37 25.8 37 29.7zM45.4 24.2c.9-2 1.7-4 2.6-6.1-.7 0-1.5 0-2.2 0-.5 1.3-.9 2.2-1.4 3.4-.5-1.3-.8-2.2-1.3-3.4-.7 0-1.5 0-2.2 0 .8 2 1.5 4 2.4 6.1-.9 2-1.7 4-2.6 6 .7.1 1.4.2 2.1.3.5-1.3 1-2.2 1.5-3.5.5 1.4 1 2.4 1.5 3.8.7.1 1.6.2 2.3.3C47.1 28.7 46.2 26.3 45.4 24.2z"></path></svg>
-                        </div>
-                        <h3 class="text-xl font-semibold text-white mb-2">Entretenimiento en Streaming</h3>
-                        <p class="text-gray-400 font-light">Accede a una vasta biblioteca de series y películas para todos los gustos.</p>
-                    </div>
-                     <div class="bg-gray-900 p-8 rounded-xl shadow-lg border border-white/10 transition-all duration-300 hover:border-cyan-400/50 hover:-translate-y-2">
-                        <div class="mb-4 h-12 w-auto mx-auto flex items-center justify-center">
-                           <img src="https://logotyp.us/file/fox-sports.svg" alt="Fox Sports Logo" class="h-10">
-                        </div>
-                        <h3 class="text-xl font-semibold text-white mb-2">Deportes en Vivo</h3>
-                        <p class="text-gray-400 font-light">Accede a contenido exclusivo de tus deportes favoritos en vivo y en directo.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="compartir" class="full-screen-section bg-gray-900">
-            <div class="container mx-auto px-6 max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-                <div class="text-center md:text-left">
-                    <h2 class="text-4xl md:text-5xl font-bold text-white tracking-tight mb-6">Comparte la Experiencia</h2>
-                    <p class="text-xl text-gray-400 mb-10 leading-relaxed font-light">Nuestra plataforma te permite compartir tus suscripciones con amigos y familiares de forma sencilla. Disfruten juntos sin complicaciones ni costos adicionales.</p>
-                    <a href="#comprar" class="bg-cyan-500 text-gray-900 font-bold py-3 px-8 rounded-full shadow-lg hover:bg-cyan-400 transition-all duration-300 transform hover:scale-105">Empezar a Compartir</a>
-                </div>
-                <div class="flex justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-48 h-48 text-cyan-400 opacity-30">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m-7.5-2.226A3 3 0 0 1 12 13.5a3 3 0 0 1 1.977 5.281m-5.854.532A3 3 0 0 0 6.75 15.75a3 3 0 0 0-1.712 5.226m10.463-5.226A3 3 0 0 0 18 13.5a3 3 0 0 0-1.977 5.281m0 0A4.5 4.5 0 0 1 13.5 18a4.5 4.5 0 0 1-4.757 4.226m5.93-5.743A4.5 4.5 0 0 0 13.5 13.5a4.5 4.5 0 0 0-4.243 5.93" />
-                    </svg>
-                </div>
-            </div>
-        </section>
-
-        <section id="ahorrar" class="full-screen-section bg-gray-800">
-            <div class="container mx-auto px-6 max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-                <div class="flex justify-center row-start-1 md:row-auto">
-                     <svg xmlns="" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-48 h-48 text-cyan-400 opacity-30">
-                       <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 11.21 12.768 11 12 11c-.768 0-1.536.21-2.121.722L9 12m-3 8c-3.333-3.333-3.333-8.667 0-12 3.333-3.333 8.667-3.333 12 0 3.333 3.333 3.333 8.667 0 12-3.333 3.333-8.667 3.333-12 0Z" />
-                     </svg>
-                </div>
-                 <div class="text-center md:text-left">
-                    <h2 class="text-4xl md:text-5xl font-bold text-white tracking-tight mb-6">Optimiza tus Gastos</h2>
-                    <p class="text-xl text-gray-400 mb-10 leading-relaxed font-light">Olvídate de pagar múltiples suscripciones. Con nuestro plan unificado, accedes a todo por una fracción del costo. Más contenido, más ahorro.</p>
-                    <a href="#comprar" class="bg-cyan-500 text-gray-900 font-bold py-3 px-8 rounded-full shadow-lg hover:bg-cyan-400 transition-all duration-300 transform hover:scale-105">Ver Planes</a>
-                </div>
-            </div>
-        </section>
-
-        <section id="entrega" class="full-screen-section bg-gray-900">
-             <div class="container mx-auto px-6 max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-                <div class="text-center md:text-left">
-                    <h2 class="text-4xl md:text-5xl font-bold text-white tracking-tight mb-6">Siempre Actualizado, Sin Esfuerzo</h2>
-                    <p class="text-xl text-gray-400 mb-10 leading-relaxed font-light">Recibe acceso a todo el contenido nuevo cada mes, de forma automática. Nos encargamos de todo para que tú solo te preocupes por disfrutar.</p>
-                    <a href="#comprar" class="bg-cyan-500 text-gray-900 font-bold py-3 px-8 rounded-full shadow-lg hover:bg-cyan-400 transition-all duration-300 transform hover:scale-105">Únete Ahora</a>
-                </div>
-                <div class="flex justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-48 h-48 text-cyan-400 opacity-30">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12 3 3m0 0 3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                    </svg>
-                </div>
-            </div>
-        </section>
-
-        <section id="comprar" class="full-screen-section bg-gradient-to-br from-gray-800 to-gray-900">
-            <div class="container mx-auto px-6 text-center max-w-4xl">
-                <h2 class="text-4xl md:text-5xl font-extrabold text-white mb-10">Oferta Exclusiva: El Tiempo se Acaba</h2>
-                
-                <div class="flex justify-center gap-4 md:gap-8 mb-12">
-                    <div class="text-center bg-gray-900/50 border border-white/10 p-4 rounded-lg w-24">
-                        <span id="days" class="text-5xl md:text-6xl font-mono font-bold text-cyan-400">00</span>
-                        <div class="text-sm uppercase text-gray-400 tracking-widest mt-1">Días</div>
-                    </div>
-                    <div class="text-center bg-gray-900/50 border border-white/10 p-4 rounded-lg w-24">
-                        <span id="hours" class="text-5xl md:text-6xl font-mono font-bold text-cyan-400">00</span>
-                        <div class="text-sm uppercase text-gray-400 tracking-widest mt-1">Horas</div>
-                    </div>
-                    <div class="text-center bg-gray-900/50 border border-white/10 p-4 rounded-lg w-24">
-                        <span id="minutes" class="text-5xl md:text-6xl font-mono font-bold text-cyan-400">00</span>
-                        <div class="text-sm uppercase text-gray-400 tracking-widest mt-1">Minutos</div>
-                    </div>
-                    <div class="text-center bg-gray-900/50 border border-white/10 p-4 rounded-lg w-24">
-                        <span id="seconds" class="text-5xl md:text-6xl font-mono font-bold text-cyan-400">00</span>
-                        <div class="text-sm uppercase text-gray-400 tracking-widest mt-1">Segundos</div>
-                    </div>
-                </div>
-
-                <button id="open-modal-button" class="bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold py-4 px-10 rounded-full shadow-xl hover:opacity-90 transition-all duration-300 transform hover:scale-105 text-lg animate-pulse">
-                    ¿Por qué es por tiempo limitado?
-                </button>
-            </div>
-        </section>
-        
-        <section id="garantia" class="full-screen-section bg-gray-800">
-            <div class="container mx-auto px-6 text-center max-w-3xl flex flex-col justify-center items-center">
-                <div class="mb-8 mx-auto w-32 h-auto flex justify-center">
-                    
-                </div>
-                <h2 class="text-4xl font-extrabold text-white mb-6 tracking-tight">Tu Satisfacción, Garantizada.</h2>
-                <p class="text-xl text-gray-400 mb-10 leading-relaxed font-light">Pruébalo sin riesgo. Estamos tan seguros de que te encantará que te ofrecemos una garantía de satisfacción total. Explóralo sin compromiso.</p>
-                <button class="bg-transparent border-2 border-cyan-400 text-cyan-400 font-bold py-3 px-10 rounded-full shadow-lg hover:bg-cyan-400 hover:text-gray-900 transition-all duration-300 transform hover:scale-105 focus:outline-none text-lg">Comenzar Prueba Gratuita</button>
-                
-                <div class="mt-12 text-center">
-                    <p class="text-sm text-gray-500 mb-4">Pagos seguros procesados por:</p>
-                </div>
-            </div>
-        </section>
-
-        <section id="clientes" class="full-screen-section bg-gray-900">
-            <div class="container mx-auto px-6 w-full">
-                <h2 class="text-3xl font-bold text-white text-center mb-12 tracking-tight">Únete a Miles de Clientes Satisfechos</h2>
-                <div class="client-carousel-container">
-                    <div class="client-carousel-track scroll-ltr">
-                        <div class="client-email">cliente.uno@email.com</div><div class="client-email">usuario.feliz@example.net</div><div class="client-email">empresa.grande@dominio.org</div><div class="client-email">juan.perez@correo.co</div><div class="client-email">ana.gomez@mail.com</div><div class="client-email">soporte@negocio.es</div><div class="client-email">contacto@sitio.web.org</div><div class="client-email">info@startup.io</div><div class="client-email">marketing@tienda.linea.com</div><div class="client-email">ventas.global@internacional.net</div>
-                        <div class="client-email">cliente.uno@email.com</div><div class="client-email">usuario.feliz@example.net</div><div class="client-email">empresa.grande@dominio.org</div><div class="client-email">juan.perez@correo.co</div><div class="client-email">ana.gomez@mail.com</div><div class="client-email">soporte@negocio.es</div><div class="client-email">contacto@sitio.web.org</div><div class="client-email">info@startup.io</div><div class="client-email">marketing@tienda.linea.com</div><div class="client-email">ventas.global@internacional.net</div>
-                    </div>
-                    <div class="client-carousel-track scroll-rtl">
-                        <div class="client-email">segundo.cliente@email.com</div><div class="client-email">otro.usuario@example.net</div><div class="client-email">corporacion.xyz@dominio.org</div><div class="client-email">maria.lopez@correo.co</div><div class="client-email">carlos.ruiz@mail.com</div><div class="client-email">ayuda@soporte.es</div><div class="client-email">partner@colaborador.org</div><div class="client-email">nuevo@proyecto.io</div><div class="client-email">social@media.com</div><div class="client-email">export@mundo.net</div>
-                        <div class="client-email">segundo.cliente@email.com</div><div class="client-email">otro.usuario@example.net</div><div class="client-email">corporacion.xyz@dominio.org</div><div class="client-email">maria.lopez@correo.co</div><div class="client-email">carlos.ruiz@mail.com</div><div class="client-email">ayuda@soporte.es</div><div class="client-email">partner@colaborador.org</div><div class="client-email">nuevo@proyecto.io</div><div class="client-email">social@media.com</div><div class="client-email">export@mundo.net</div>
-                    </div>
-                    <div class="client-carousel-track scroll-ltr">
-                        <div class="client-email">tercer.contacto@email.com</div><div class="client-email">user.final@example.net</div><div class="client-email">ong.social@dominio.org</div><div class="client-email">luis.fernandez@correo.co</div><div class="client-email">laura.vargas@mail.com</div><div class="client-email">tech@apoyo.es</div><div class="client-email">media@publicidad.org</div><div class="client-email">inversor@capital.io</div><div class="client-email">blog@contenido.com</div><div class="client-email">import@negocio.net</div>
-                        <div class="client-email">tercer.contacto@email.com</div><div class="client-email">user.final@example.net</div><div class="client-email">ong.social@dominio.org</div><div class="client-email">luis.fernandez@correo.co</div><div class="client-email">laura.vargas@mail.com</div><div class="client-email">tech@apoyo.es</div><div class="client-email">media@publicidad.org</div><div class="client-email">inversor@capital.io</div><div class="client-email">blog@contenido.com</div><div class="client-email">import@negocio.net</div>
-                    </div>
-                </div>
-            </div>
-        </section>
+    <!-- Página Principal (Home) -->
+    <div id="home-page" class="page">
+        <div class="header">
+            <h1>Galería de Planetas</h1>
+            <p>Haz clic en una imagen para ver la magia de la Page Transitions API.</p>
+        </div>
+        <div class="gallery">
+            <!-- Los elementos se generarán con JavaScript -->
+        </div>
     </div>
 
-    <div id="info-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
-        <div class="bg-gray-800 p-8 rounded-lg shadow-xl relative max-w-lg w-full border border-white/10">
-            <button id="close-modal-button" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-            <h3 class="text-2xl font-bold text-white mb-4">Sobre Nuestra Oferta Semanal</h3>
-            <div class="text-gray-300 space-y-4 font-light">
-                <p>
-                    Para garantizar la máxima exclusividad y la calidad de nuestro servicio, operamos en ciclos semanales. La naturaleza dinámica de nuestra oferta digital requiere que actualicemos y renovemos nuestra plataforma constantemente.
-                </p>
-                <p class="font-semibold text-cyan-400">
-                    Esto significa que cada lunes, esta página y su oferta se reinician bajo un nuevo acceso.
-                </p>
-                <p>
-                    La única manera de asegurar tu lugar y mantener los beneficios de forma permanente es adquiriendo el plan antes de que el contador llegue a cero. ¡No te quedes fuera y únete ahora para disfrutar de un servicio ininterrumpido!
-                </p>
+    <!-- Página de Detalle -->
+    <div id="detail-page" class="page">
+        <div class="header">
+            <a href="#" class="back-button">← Volver</a>
+        </div>
+        <div class="detail-content">
+            <img id="detail-image" src="" alt="">
+            <div class="detail-info">
+                <h2 id="detail-title"></h2>
+                <p id="detail-description"></p>
             </div>
         </div>
     </div>
-    
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const gallery = document.querySelector('.gallery');
+            const homePage = document.getElementById('home-page');
+            const detailPage = document.getElementById('detail-page');
+            const backButton = document.querySelector('.back-button');
+
+            const planetData = [
+                { id: 'tierra', name: 'Tierra', desc: 'Nuestro planeta hogar, un oasis de vida en la inmensidad del cosmos. Lleno de océanos azules, continentes verdes y nubes arremolinadas.', img: 'https://placehold.co/600x400/3498db/ffffff?text=Tierra' },
+                { id: 'marte', name: 'Marte', desc: 'El planeta rojo, un mundo desértico y frío con cañones gigantes y volcanes extintos. Un objetivo clave en nuestra búsqueda de vida extraterrestre.', img: 'https://placehold.co/600x400/e74c3c/ffffff?text=Marte' },
+                { id: 'jupiter', name: 'Júpiter', desc: 'El gigante gaseoso, el planeta más grande de nuestro sistema solar. Famoso por su Gran Mancha Roja, una tormenta más grande que la Tierra.', img: 'https://placehold.co/600x400/f39c12/ffffff?text=Júpiter' },
+                { id: 'saturno', name: 'Saturno', desc: 'La joya del sistema solar, conocido por sus impresionantes y complejos anillos de hielo y roca. Un gigante gaseoso con decenas de lunas.', img: 'https://placehold.co/600x400/f1c40f/ffffff?text=Saturno' }
+            ];
+
+            // --- Poblar la galería inicial ---
+            planetData.forEach(planet => {
+                const item = document.createElement('a');
+                item.href = `#${planet.id}`;
+                item.classList.add('gallery-item');
+                item.dataset.id = planet.id;
+                
+                // La propiedad --transition-name se usa en el CSS para `view-transition-name`.
+                // Esto asegura que cada imagen tenga un nombre de transición único.
+                item.style.setProperty('--transition-name', `planet-image-${planet.id}`);
+
+                item.innerHTML = `
+                    <img src="${planet.img}" alt="${planet.name}" class="transition-image">
+                    <div class="gallery-item-title">${planet.name}</div>
+                `;
+                gallery.appendChild(item);
+            });
+
+            const galleryItems = document.querySelectorAll('.gallery-item');
+
+            // --- Función para navegar ---
+            const navigate = (targetId) => {
+                const planet = planetData.find(p => p.id === targetId);
+                if (!planet) return;
+                
+                // Actualizamos el contenido de la página de detalle
+                document.getElementById('detail-image').src = planet.img;
+                document.getElementById('detail-title').textContent = planet.name;
+                document.getElementById('detail-description').textContent = planet.desc;
+                
+                // Asignamos el mismo nombre de transición a la imagen de detalle
+                const detailImage = document.getElementById('detail-image');
+                detailImage.classList.add('transition-image');
+                detailImage.style.setProperty('--transition-name', `planet-image-${planet.id}`);
+                
+                const detailText = document.querySelector('.detail-info');
+                detailText.style.setProperty('view-transition-name', `detail-text-${planet.id}`);
+
+                // Intercambiamos la visibilidad de las páginas
+                homePage.style.display = 'none';
+                detailPage.style.display = 'block';
+            };
+
+            // --- Manejar clics en la galería ---
+            galleryItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = item.dataset.id;
+
+                    // `document.startViewTransition` es la función mágica.
+                    // 1. El navegador toma una "foto" del estado actual de la página.
+                    // 2. Ejecutamos el código dentro del callback (actualizar el DOM).
+                    // 3. El navegador toma una "foto" del nuevo estado de la página.
+                    // 4. El navegador calcula la diferencia y crea una transición fluida,
+                    //    manejada por el Compositor Thread para un rendimiento máximo.
+                    if (!document.startViewTransition) {
+                        navigate(targetId); // Fallback para navegadores sin soporte
+                        return;
+                    }
+                    
+                    document.startViewTransition(() => navigate(targetId));
+                });
+            });
+
+            // --- Manejar el botón de volver ---
+            backButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                const goBack = () => {
+                    homePage.style.display = 'block';
+                    detailPage.style.display = 'none';
+                };
+                
+                if (!document.startViewTransition) {
+                    goBack();
+                    return;
+                }
+
+                document.startViewTransition(() => goBack());
+            });
+        });
+    </script>
 </body>
 </html>
