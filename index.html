@@ -21,7 +21,9 @@
             margin: 0;
             background-color: var(--background-color);
             color: var(--text-color);
-            overscroll-behavior: none;
+            /* LA LÍNEA PROBLEMÁTICA HA SIDO ELIMINADA:
+               overscroll-behavior: none; 
+               Esto permite que los gestos nativos del navegador funcionen. */
         }
 
         /* --- Contenedores de Página --- */
@@ -117,7 +119,14 @@
 
         /* --- LA MAGIA DE PAGE TRANSITIONS API --- */
         .transition-image {
+            /* Esta propiedad es la que permite la transición.
+               El nombre se asigna dinámicamente con JS. */
             view-transition-name: var(--transition-name);
+        }
+        
+        .detail-info {
+            /* Asignamos un nombre de transición base para el contenedor de texto */
+            view-transition-name: detail-text;
         }
 
         ::view-transition-old(root),
@@ -134,6 +143,7 @@
             animation-name: fade-in;
         }
         
+        /* Animación específica para el texto de detalle */
         ::view-transition-old(detail-text),
         ::view-transition-new(detail-text) {
              animation-duration: 0.3s;
@@ -183,6 +193,10 @@
             const homePage = document.getElementById('home-page');
             const detailPage = document.getElementById('detail-page');
             const gallery = document.querySelector('.gallery');
+            const detailImage = document.getElementById('detail-image');
+            const detailTitle = document.getElementById('detail-title');
+            const detailDescription = document.getElementById('detail-description');
+            const detailInfo = document.querySelector('.detail-info');
 
             const planetData = [
                 { id: 'tierra', name: 'Tierra', desc: 'Nuestro planeta hogar, un oasis de vida en la inmensidad del cosmos. Lleno de océanos azules, continentes verdes y nubes arremolinadas.', img: 'https://placehold.co/600x400/3498db/ffffff?text=Tierra' },
@@ -193,45 +207,52 @@
 
             const getPlanetIdFromURL = (url) => new URL(url).hash.substring(1);
 
+            // Función centralizada para actualizar el DOM
             const updateDOM = (url) => {
                 const planetId = getPlanetIdFromURL(url);
                 const planet = planetData.find(p => p.id === planetId);
 
                 if (planet) {
-                    document.getElementById('detail-image').src = planet.img;
-                    document.getElementById('detail-title').textContent = planet.name;
-                    document.getElementById('detail-description').textContent = planet.desc;
+                    // --- Muestra la página de detalle ---
+                    detailImage.src = planet.img;
+                    detailTitle.textContent = planet.name;
+                    detailDescription.textContent = planet.desc;
                     
-                    const detailImage = document.getElementById('detail-image');
+                    // Asigna nombres de transición únicos para la animación
+                    const transitionName = `planet-image-${planet.id}`;
                     detailImage.classList.add('transition-image');
-                    detailImage.style.setProperty('--transition-name', `planet-image-${planet.id}`);
+                    detailImage.style.setProperty('--transition-name', transitionName);
                     
-                    const detailText = document.querySelector('.detail-info');
-                    detailText.style.setProperty('view-transition-name', `detail-text-${planet.id}`);
-
                     homePage.classList.remove('active');
                     detailPage.classList.add('active');
                 } else {
+                    // --- Muestra la página principal (galería) ---
+                    
+                    // MEJORA: Limpiamos los estilos de transición para evitar conflictos
+                    detailImage.classList.remove('transition-image');
+                    detailImage.style.removeProperty('--transition-name');
+
                     homePage.classList.add('active');
                     detailPage.classList.remove('active');
                 }
             };
 
-            // --- Poblar la galería ---
+            // --- Poblar la galería inicial ---
             planetData.forEach(planet => {
                 const item = document.createElement('a');
                 item.href = `#${planet.id}`;
                 item.classList.add('gallery-item');
-                item.style.setProperty('--transition-name', `planet-image-${planet.id}`);
-                item.innerHTML = `<img src="${planet.img}" alt="${planet.name}" class="transition-image"><div class="gallery-item-title">${planet.name}</div>`;
+                
+                // Asignamos el nombre de transición al elemento de la galería
+                // para que coincida con el de la página de detalle
+                const transitionName = `planet-image-${planet.id}`;
+                item.innerHTML = `<img src="${planet.img}" alt="${planet.name}" class="transition-image" style="--transition-name: ${transitionName};"><div class="gallery-item-title">${planet.name}</div>`;
                 gallery.appendChild(item);
             });
 
             // --- Usamos la Navigation API para manejar TODAS las navegaciones ---
             navigation.addEventListener('navigate', (e) => {
-                // CAMBIO CLAVE: Usamos `e.destination.sameDocument` para verificar si la navegación
-                // es dentro de la misma página. Es más robusto que comparar pathnames y
-                // evita los errores de parsing de URL que estabas experimentando.
+                // Solo interceptamos navegaciones dentro de la misma página (cambios de hash)
                 if (!e.destination.sameDocument) {
                     return;
                 }
@@ -239,11 +260,13 @@
                 // Le decimos al navegador que nos encargaremos de la navegación
                 e.intercept({
                     async handler() {
+                        // Si el navegador no soporta View Transitions, actualizamos el DOM directamente
                         if (!document.startViewTransition) {
                             updateDOM(e.destination.url);
                             return;
                         }
                         
+                        // Si lo soporta, envolvemos la actualización del DOM en una transición
                         const transition = document.startViewTransition(() => {
                             updateDOM(e.destination.url);
                         });
