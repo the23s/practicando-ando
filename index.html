@@ -217,38 +217,26 @@
                 }
             };
 
-            // --- Poblar la galería y añadir listeners ---
+            // --- Poblar la galería ---
             planetData.forEach(planet => {
                 const item = document.createElement('a');
                 item.href = `#${planet.id}`;
                 item.classList.add('gallery-item');
                 item.style.setProperty('--transition-name', `planet-image-${planet.id}`);
                 item.innerHTML = `<img src="${planet.img}" alt="${planet.name}" class="transition-image"><div class="gallery-item-title">${planet.name}</div>`;
-                
-                // --- CAMBIO CLAVE: Hacemos la navegación explícita ---
-                item.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    // En lugar de dejar que el enlace navegue por defecto,
-                    // le decimos explícitamente a la Navigation API que lo haga.
-                    // Esto unifica el comportamiento de clics y gestos.
-                    navigation.navigate(item.href);
-                });
-
                 gallery.appendChild(item);
-            });
-
-            // --- Listener para el botón de volver ---
-            document.querySelector('.back-button').addEventListener('click', (e) => {
-                e.preventDefault();
-                navigation.back();
             });
 
             // --- Usamos la Navigation API para manejar TODAS las navegaciones ---
             navigation.addEventListener('navigate', (e) => {
-                if (new URL(e.destination.url).pathname !== location.pathname) {
+                // CAMBIO CLAVE: Usamos `e.destination.sameDocument` para verificar si la navegación
+                // es dentro de la misma página. Es más robusto que comparar pathnames y
+                // evita los errores de parsing de URL que estabas experimentando.
+                if (!e.destination.sameDocument) {
                     return;
                 }
 
+                // Le decimos al navegador que nos encargaremos de la navegación
                 e.intercept({
                     async handler() {
                         if (!document.startViewTransition) {
@@ -260,7 +248,11 @@
                             updateDOM(e.destination.url);
                         });
                         
-                        await transition.finished;
+                        try {
+                            await transition.finished;
+                        } catch (error) {
+                            console.error('Transición fallida:', error);
+                        }
                     }
                 });
             });
