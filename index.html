@@ -3,286 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Demo: Page Transitions API con Navigation API</title>
+    <title>Paralaje Futurista con Giroscopio</title>
     <style>
-        /* --- Estilos Base y Estética --- */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
 
         :root {
-            --background-color: #0c0c0c;
-            --card-background: #181818;
-            --text-color: #e0e0e0;
-            --accent-color: #00aaff;
-            --border-color: #2a2a2a;
+            --glow-color-1: #00f7ff;
+            --glow-color-2: #f0f;
+            --glow-color-3: #7dff00;
+            --bg-color: #010007;
         }
 
         body {
-            font-family: 'Inter', sans-serif;
             margin: 0;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            /* LA LÍNEA PROBLEMÁTICA HA SIDO ELIMINADA:
-               overscroll-behavior: none; 
-               Esto permite que los gestos nativos del navegador funcionen. */
-        }
-
-        /* --- Contenedores de Página --- */
-        .page {
-            padding: 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
-            display: none; /* Ocultos por defecto, JS controlará la visibilidad */
-        }
-        
-        .page.active {
-            display: block;
-        }
-
-        #home-page .header, #detail-page .header {
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 2rem;
-        }
-        
-        h1 {
-            font-size: 2.5rem;
-            margin: 0;
-        }
-        
-        p {
-            color: #a0a0a0;
-        }
-
-        /* --- Estilos de la Galería (Página Principal) --- */
-        .gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .gallery-item {
-            background-color: var(--card-background);
-            border-radius: 12px;
-            overflow: hidden;
-            text-decoration: none;
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        
-        .gallery-item:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .gallery-item img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            display: block;
-        }
-        
-        .gallery-item-title {
-            padding: 1rem;
-            font-weight: 600;
-        }
-
-        /* --- Estilos de la Página de Detalle --- */
-        .detail-content {
-            display: grid;
-            grid-template-columns: 1fr 1.5fr;
-            gap: 2rem;
-            align-items: start;
-        }
-        
-        .detail-content img {
-            width: 100%;
-            border-radius: 12px;
-        }
-        
-        .detail-info h2 {
-            font-size: 2.5rem;
-            margin: 0 0 1rem 0;
-            color: var(--accent-color);
-        }
-
-        .back-button {
-            display: inline-block;
-            padding: 0.75rem 1.5rem;
-            background-color: var(--accent-color);
+            height: 100vh;
+            background-color: var(--bg-color);
             color: #fff;
-            text-decoration: none;
+            font-family: 'Orbitron', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .scene {
+            position: relative;
+            width: 90vw;
+            height: 90vh;
+            max-width: 600px;
+            max-height: 600px;
+            perspective: 1000px; /* Añade perspectiva para efectos 3D */
+        }
+
+        /* Cada capa del paralaje */
+        .layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* Optimizacion CLAVE: le decimos al navegador que se prepare para transformar este elemento */
+            will-change: transform;
+            /* Transicion suave para que el movimiento no sea brusco */
+            transition: transform 0.1s ease-out;
+        }
+
+        /* Estilos de las capas para el look "Futurista con Neones" */
+        .layer-1 .grid {
+            width: 120%;
+            height: 120%;
+            background-image:
+                linear-gradient(to right, rgba(0, 247, 255, 0.2) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 247, 255, 0.2) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.5;
+        }
+
+        .layer-2 .planet {
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, #ff00ff, #3d003d);
+            border-radius: 50%;
+            box-shadow: 0 0 20px var(--glow-color-2), 0 0 40px var(--glow-color-2), inset 0 0 30px #000;
+        }
+        
+        .layer-3 .crystal {
+            width: 80px;
+            height: 80px;
+            background-color: var(--glow-color-1);
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+            opacity: 0.8;
+            filter: drop-shadow(0 0 15px var(--glow-color-1));
+        }
+
+        .layer-4 .ring {
+            width: 300px;
+            height: 300px;
+            border: 2px solid var(--glow-color-3);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--glow-color-3), inset 0 0 15px var(--glow-color-3);
+        }
+        
+        .overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 2em;
+            border-radius: 15px;
+            border: 1px solid var(--glow-color-1);
+            box-shadow: 0 0 20px var(--glow-color-1);
+        }
+
+        h1 {
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--glow-color-1);
+        }
+
+        #permission-button {
+            background-color: transparent;
+            border: 2px solid var(--glow-color-2);
+            color: var(--glow-color-2);
+            padding: 10px 20px;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            font-size: 1em;
             border-radius: 8px;
-            font-weight: 600;
-            margin-top: 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px var(--glow-color-2);
         }
 
-        /* --- LA MAGIA DE PAGE TRANSITIONS API --- */
-        .transition-image {
-            /* Esta propiedad es la que permite la transición.
-               El nombre se asigna dinámicamente con JS. */
-            view-transition-name: var(--transition-name);
-        }
-        
-        .detail-info {
-            /* Asignamos un nombre de transición base para el contenedor de texto */
-            view-transition-name: detail-text;
-        }
-
-        ::view-transition-old(root),
-        ::view-transition-new(root) {
-            animation-duration: 0.4s;
-            animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        ::view-transition-old(root) {
-            animation-name: fade-out;
-        }
-
-        ::view-transition-new(root) {
-            animation-name: fade-in;
-        }
-        
-        /* Animación específica para el texto de detalle */
-        ::view-transition-old(detail-text),
-        ::view-transition-new(detail-text) {
-             animation-duration: 0.3s;
-             animation-timing-function: ease-in-out;
-        }
-        
-        ::view-transition-old(detail-text) {
-             animation-name: slide-to-top;
-        }
-        
-        ::view-transition-new(detail-text) {
-             animation-name: slide-from-bottom;
-        }
-
-        @keyframes fade-in { from { opacity: 0; } }
-        @keyframes fade-out { to { opacity: 0; } }
-        @keyframes slide-from-bottom { from { opacity: 0; transform: translateY(30px); } }
-        @keyframes slide-to-top { to { opacity: 0; transform: translateY(-30px); } }
-
-        @media (max-width: 768px) {
-            .detail-content {
-                grid-template-columns: 1fr;
-            }
+        #permission-button:hover {
+            background-color: var(--glow-color-2);
+            color: var(--bg-color);
+            box-shadow: 0 0 20px var(--glow-color-2), 0 0 30px var(--glow-color-2);
         }
     </style>
 </head>
 <body>
 
-    <div id="home-page" class="page">
-        <div class="header"><h1>Galería de Planetas</h1><p>Ahora los gestos de navegación funcionan a la perfección.</p></div>
-        <div class="gallery"></div>
-    </div>
-
-    <div id="detail-page" class="page">
-        <div class="header"><a href="/" class="back-button">← Volver</a></div>
-        <div class="detail-content">
-            <img id="detail-image" src="" alt="">
-            <div class="detail-info">
-                <h2 id="detail-title"></h2>
-                <p id="detail-description"></p>
-            </div>
+    <div class="scene" id="scene">
+        <!-- Capa más lejana, se mueve menos -->
+        <div class="layer layer-1" data-depth="0.1">
+            <div class="grid"></div>
+        </div>
+        <!-- Capa intermedia -->
+        <div class="layer layer-2" data-depth="0.2">
+            <div class="planet"></div>
+        </div>
+        <!-- Capa más cercana, se mueve más -->
+        <div class="layer layer-3" data-depth="0.6">
+             <div class="crystal"></div>
+        </div>
+        <div class="layer layer-4" data-depth="0.4">
+            <div class="ring"></div>
         </div>
     </div>
 
+    <div class="overlay" id="overlay">
+        <h1>Giro-Paralaje</h1>
+        <p>Mueve tu dispositivo para controlar la escena.</p>
+        <button id="permission-button">Activar Sensores</button>
+    </div>
+
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const homePage = document.getElementById('home-page');
-            const detailPage = document.getElementById('detail-page');
-            const gallery = document.querySelector('.gallery');
-            const detailImage = document.getElementById('detail-image');
-            const detailTitle = document.getElementById('detail-title');
-            const detailDescription = document.getElementById('detail-description');
-            const detailInfo = document.querySelector('.detail-info');
+        // --- 1. CONFIGURACION INICIAL ---
+        const scene = document.getElementById('scene');
+        const layers = document.querySelectorAll('.layer');
+        const overlay = document.getElementById('overlay');
+        const permissionButton = document.getElementById('permission-button');
 
-            const planetData = [
-                { id: 'tierra', name: 'Tierra', desc: 'Nuestro planeta hogar, un oasis de vida en la inmensidad del cosmos. Lleno de océanos azules, continentes verdes y nubes arremolinadas.', img: 'https://placehold.co/600x400/3498db/ffffff?text=Tierra' },
-                { id: 'marte', name: 'Marte', desc: 'El planeta rojo, un mundo desértico y frío con cañones gigantes y volcanes extintos. Un objetivo clave en nuestra búsqueda de vida extraterrestre.', img: 'https://placehold.co/600x400/e74c3c/ffffff?text=Marte' },
-                { id: 'jupiter', name: 'Júpiter', desc: 'El gigante gaseoso, el planeta más grande de nuestro sistema solar. Famoso por su Gran Mancha Roja, una tormenta más grande que la Tierra.', img: 'https://placehold.co/600x400/f39c12/ffffff?text=Júpiter' },
-                { id: 'saturno', name: 'Saturno', desc: 'La joya del sistema solar, conocido por sus impresionantes y complejos anillos de hielo y roca. Un gigante gaseoso con decenas de lunas.', img: 'https://placehold.co/600x400/f1c40f/ffffff?text=Saturno' }
-            ];
+        // Variables para almacenar los valores del giroscopio
+        let gamma = 0;
+        let beta = 0;
 
-            const getPlanetIdFromURL = (url) => new URL(url).hash.substring(1);
-
-            // Función centralizada para actualizar el DOM
-            const updateDOM = (url) => {
-                const planetId = getPlanetIdFromURL(url);
-                const planet = planetData.find(p => p.id === planetId);
-
-                if (planet) {
-                    // --- Muestra la página de detalle ---
-                    detailImage.src = planet.img;
-                    detailTitle.textContent = planet.name;
-                    detailDescription.textContent = planet.desc;
-                    
-                    // Asigna nombres de transición únicos para la animación
-                    const transitionName = `planet-image-${planet.id}`;
-                    detailImage.classList.add('transition-image');
-                    detailImage.style.setProperty('--transition-name', transitionName);
-                    
-                    homePage.classList.remove('active');
-                    detailPage.classList.add('active');
-                } else {
-                    // --- Muestra la página principal (galería) ---
-                    
-                    // MEJORA: Limpiamos los estilos de transición para evitar conflictos
-                    detailImage.classList.remove('transition-image');
-                    detailImage.style.removeProperty('--transition-name');
-
-                    homePage.classList.add('active');
-                    detailPage.classList.remove('active');
-                }
-            };
-
-            // --- Poblar la galería inicial ---
-            planetData.forEach(planet => {
-                const item = document.createElement('a');
-                item.href = `#${planet.id}`;
-                item.classList.add('gallery-item');
+        // --- 2. BUCLE DE ANIMACION (OPTIMIZACION DE RENDIMIENTO) ---
+        // Usamos requestAnimationFrame para actualizar el DOM solo cuando el navegador
+        // está listo para pintar un nuevo frame. Esto es MUCHO más eficiente que
+        // actualizar el CSS directamente en el event listener.
+        function animate() {
+            layers.forEach(layer => {
+                const depth = parseFloat(layer.getAttribute('data-depth'));
                 
-                // Asignamos el nombre de transición al elemento de la galería
-                // para que coincida con el de la página de detalle
-                const transitionName = `planet-image-${planet.id}`;
-                item.innerHTML = `<img src="${planet.img}" alt="${planet.name}" class="transition-image" style="--transition-name: ${transitionName};"><div class="gallery-item-title">${planet.name}</div>`;
-                gallery.appendChild(item);
+                // Calculamos el desplazamiento para cada capa.
+                // Multiplicamos los valores del giroscopio por la "profundidad" y un factor
+                // para que el efecto sea sutil y controlable.
+                const moveX = gamma * depth * 25; 
+                const moveY = beta * depth * 25;
+
+                // Aplicamos la transformación 3D. Usar translate3d fuerza la aceleración por GPU.
+                layer.style.transform = `translate3d(${moveX}px, ${moveY}px, 0)`;
             });
 
-            // --- Usamos la Navigation API para manejar TODAS las navegaciones ---
-            navigation.addEventListener('navigate', (e) => {
-                // Solo interceptamos navegaciones dentro de la misma página (cambios de hash)
-                if (!e.destination.sameDocument) {
-                    return;
-                }
+            // Continuamos el bucle en el siguiente frame.
+            requestAnimationFrame(animate);
+        }
 
-                // Le decimos al navegador que nos encargaremos de la navegación
-                e.intercept({
-                    async handler() {
-                        // Si el navegador no soporta View Transitions, actualizamos el DOM directamente
-                        if (!document.startViewTransition) {
-                            updateDOM(e.destination.url);
-                            return;
-                        }
-                        
-                        // Si lo soporta, envolvemos la actualización del DOM en una transición
-                        const transition = document.startViewTransition(() => {
-                            updateDOM(e.destination.url);
-                        });
-                        
-                        try {
-                            await transition.finished;
-                        } catch (error) {
-                            console.error('Transición fallida:', error);
-                        }
-                    }
-                });
-            });
+        // --- 3. MANEJO DE EVENTOS Y PERMISOS ---
+        function handleOrientation(event) {
+            // Actualizamos las variables con los nuevos datos del sensor.
+            // Los valores se limitan para evitar movimientos extremos.
+            gamma = Math.max(-90, Math.min(90, event.gamma)); // Izquierda/Derecha
+            beta = Math.max(-90, Math.min(90, event.beta));   // Adelante/Atrás
+        }
 
-            // --- Estado inicial al cargar la página ---
-            updateDOM(location.href);
-        });
+        function requestDeviceOrientation() {
+            // Esta función es CRÍTICA para iOS 13+ y algunos navegadores
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState === 'granted') {
+                            window.addEventListener('deviceorientation', handleOrientation);
+                            overlay.style.display = 'none';
+                            // Iniciamos el bucle de animación una vez que tenemos permiso
+                            animate();
+                        } else {
+                            alert('Permiso denegado. No se puede activar el giroscopio.');
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                // Para navegadores que no requieren permiso explícito
+                window.addEventListener('deviceorientation', handleOrientation);
+                overlay.style.display = 'none';
+                animate();
+            }
+        }
+
+        // --- 4. INICIALIZACION ---
+        // Comprobamos si la API es compatible
+        if (window.DeviceOrientationEvent) {
+            permissionButton.addEventListener('click', requestDeviceOrientation);
+        } else {
+            overlay.innerHTML = "<h1>API No Soportada</h1><p>Tu navegador no es compatible con la Device Orientation API.</p>";
+        }
     </script>
 </body>
 </html>
