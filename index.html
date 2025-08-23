@@ -224,33 +224,38 @@
                 item.classList.add('gallery-item');
                 item.style.setProperty('--transition-name', `planet-image-${planet.id}`);
                 item.innerHTML = `<img src="${planet.img}" alt="${planet.name}" class="transition-image"><div class="gallery-item-title">${planet.name}</div>`;
+                
+                // --- CAMBIO CLAVE: Hacemos la navegación explícita ---
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // En lugar de dejar que el enlace navegue por defecto,
+                    // le decimos explícitamente a la Navigation API que lo haga.
+                    // Esto unifica el comportamiento de clics y gestos.
+                    navigation.navigate(item.href);
+                });
+
                 gallery.appendChild(item);
             });
 
             // --- Listener para el botón de volver ---
             document.querySelector('.back-button').addEventListener('click', (e) => {
                 e.preventDefault();
-                // CAMBIO CLAVE: Usamos la API de Navegación para retroceder
                 navigation.back();
             });
 
-            // --- CAMBIO CLAVE: Usamos la Navigation API en lugar de popstate ---
+            // --- Usamos la Navigation API para manejar TODAS las navegaciones ---
             navigation.addEventListener('navigate', (e) => {
-                // Solo nos interesan las navegaciones dentro de la misma página (con hash)
                 if (new URL(e.destination.url).pathname !== location.pathname) {
                     return;
                 }
 
-                // Le decimos al navegador que nos encargaremos de la navegación
                 e.intercept({
                     async handler() {
-                        // Si la API de transiciones no está disponible, actualiza el DOM y listo.
                         if (!document.startViewTransition) {
                             updateDOM(e.destination.url);
                             return;
                         }
                         
-                        // Inicia la transición y actualiza el DOM dentro del callback.
                         const transition = document.startViewTransition(() => {
                             updateDOM(e.destination.url);
                         });
