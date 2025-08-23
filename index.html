@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Demo: Page Transitions API</title>
+    <title>Demo: Page Transitions API con Navigation API</title>
     <style>
         /* --- Estilos Base y Estética --- */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -163,7 +163,7 @@
 <body>
 
     <div id="home-page" class="page">
-        <div class="header"><h1>Galería de Planetas</h1><p>Haz clic en una imagen para ver la magia de la Page Transitions API.</p></div>
+        <div class="header"><h1>Galería de Planetas</h1><p>Ahora los gestos de navegación funcionan a la perfección.</p></div>
         <div class="gallery"></div>
     </div>
 
@@ -191,14 +191,13 @@
                 { id: 'saturno', name: 'Saturno', desc: 'La joya del sistema solar, conocido por sus impresionantes y complejos anillos de hielo y roca. Un gigante gaseoso con decenas de lunas.', img: 'https://placehold.co/600x400/f1c40f/ffffff?text=Saturno' }
             ];
 
-            // --- Función central para actualizar el DOM ---
-            // Esta función decide qué página mostrar basándose en la URL.
-            const updateDOM = (path) => {
-                const planetId = path.substring(1); // Quita el '#'
+            const getPlanetIdFromURL = (url) => new URL(url).hash.substring(1);
+
+            const updateDOM = (url) => {
+                const planetId = getPlanetIdFromURL(url);
                 const planet = planetData.find(p => p.id === planetId);
 
                 if (planet) {
-                    // Muestra la página de detalle
                     document.getElementById('detail-image').src = planet.img;
                     document.getElementById('detail-title').textContent = planet.name;
                     document.getElementById('detail-description').textContent = planet.desc;
@@ -213,21 +212,9 @@
                     homePage.classList.remove('active');
                     detailPage.classList.add('active');
                 } else {
-                    // Muestra la página de inicio
                     homePage.classList.add('active');
                     detailPage.classList.remove('active');
                 }
-            };
-
-            // --- Función de navegación que inicia la transición ---
-            const navigate = (url) => {
-                // Si la API de transiciones no está disponible, navega directamente.
-                if (!document.startViewTransition) {
-                    updateDOM(url);
-                    return;
-                }
-                // Inicia la transición y actualiza el DOM dentro del callback.
-                document.startViewTransition(() => updateDOM(url));
             };
 
             // --- Poblar la galería y añadir listeners ---
@@ -235,38 +222,46 @@
                 const item = document.createElement('a');
                 item.href = `#${planet.id}`;
                 item.classList.add('gallery-item');
-                item.dataset.id = planet.id;
                 item.style.setProperty('--transition-name', `planet-image-${planet.id}`);
                 item.innerHTML = `<img src="${planet.img}" alt="${planet.name}" class="transition-image"><div class="gallery-item-title">${planet.name}</div>`;
-                
-                item.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const newPath = `#${item.dataset.id}`;
-                    // CAMBIO CLAVE: Añade un nuevo estado al historial del navegador.
-                    history.pushState({ path: newPath }, '', newPath);
-                    navigate(newPath);
-                });
                 gallery.appendChild(item);
             });
 
-            // --- Listener para el botón de volver en la página de detalle ---
+            // --- Listener para el botón de volver ---
             document.querySelector('.back-button').addEventListener('click', (e) => {
                 e.preventDefault();
-                // CAMBIO CLAVE: En lugar de manipular el DOM, simplemente le decimos al historial que retroceda.
-                history.back();
+                // CAMBIO CLAVE: Usamos la API de Navegación para retroceder
+                navigation.back();
             });
 
-            // --- Listener para el evento popstate (botones de navegador/ratón) ---
-            // CAMBIO CLAVE: Este es el cerebro que reacciona a los cambios en el historial.
-            window.addEventListener('popstate', (e) => {
-                // Cuando el usuario usa los botones de retroceso/avance,
-                // llamamos a nuestra función de navegación para actualizar la vista.
-                navigate(location.hash);
+            // --- CAMBIO CLAVE: Usamos la Navigation API en lugar de popstate ---
+            navigation.addEventListener('navigate', (e) => {
+                // Solo nos interesan las navegaciones dentro de la misma página (con hash)
+                if (new URL(e.destination.url).pathname !== location.pathname) {
+                    return;
+                }
+
+                // Le decimos al navegador que nos encargaremos de la navegación
+                e.intercept({
+                    async handler() {
+                        // Si la API de transiciones no está disponible, actualiza el DOM y listo.
+                        if (!document.startViewTransition) {
+                            updateDOM(e.destination.url);
+                            return;
+                        }
+                        
+                        // Inicia la transición y actualiza el DOM dentro del callback.
+                        const transition = document.startViewTransition(() => {
+                            updateDOM(e.destination.url);
+                        });
+                        
+                        await transition.finished;
+                    }
+                });
             });
 
             // --- Estado inicial al cargar la página ---
-            // Muestra la página correcta basándose en la URL con la que se cargó.
-            updateDOM(location.hash);
+            updateDOM(location.href);
         });
     </script>
 </body>
