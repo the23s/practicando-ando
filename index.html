@@ -3,221 +3,230 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paralaje Futurista con Giroscopio (Movimiento Relativo)</title>
+    <title>Tarjeta Holográfica 3D con Giroscopio</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
 
         :root {
-            --glow-color-1: #00f7ff;
-            --glow-color-2: #f0f;
-            --glow-color-3: #7dff00;
-            --bg-color: #010007;
+            /* Variables CSS que controlaremos con JavaScript */
+            --rotateX: 0deg;
+            --rotateY: 0deg;
+            --pointerX: 50%;
+            --pointerY: 50%;
         }
 
         body {
-            margin: 0;
-            height: 100vh;
-            background-color: var(--bg-color);
-            color: #fff;
-            font-family: 'Orbitron', sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
+            min-height: 100vh;
+            background-color: #0a0a0f;
+            font-family: 'Orbitron', sans-serif;
+            color: #e0e0e0;
+            perspective: 1000px; /* Activa el espacio 3D para los hijos */
             overflow: hidden;
-            text-align: center;
         }
 
-        .scene {
+        .card-container {
+            width: clamp(300px, 80vw, 400px);
+            height: 500px;
+            /* Le damos al contenedor la capacidad de tener hijos en un espacio 3D */
+            transform-style: preserve-3d;
+            /* La transformación se aplica aquí, usando nuestras variables */
+            transform: rotateX(var(--rotateX)) rotateY(var(--rotateY));
+            transition: transform 0.1s linear; /* Suaviza el movimiento */
+            /* will-change es una pista para el navegador para que optimice la animación */
+            will-change: transform;
             position: relative;
-            width: 90vw;
-            height: 90vh;
-            max-width: 600px;
-            max-height: 600px;
-            perspective: 1000px; /* Añade perspectiva para efectos 3D */
         }
 
-        .layer {
+        .card {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+            background: rgba(20, 20, 40, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(128, 128, 255, 0.3);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            transform-style: preserve-3d;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Capa de brillo que reacciona a la inclinación */
+        .card::before {
+            content: '';
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            will-change: transform;
-            transition: transform 0.1s ease-out;
-        }
-
-        .layer-1 .grid {
-            width: 120%;
-            height: 120%;
-            background-image:
-                linear-gradient(to right, rgba(0, 247, 255, 0.2) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(0, 247, 255, 0.2) 1px, transparent 1px);
-            background-size: 50px 50px;
-            opacity: 0.5;
-        }
-
-        .layer-2 .planet {
-            width: 150px;
-            height: 150px;
-            background: radial-gradient(circle, #ff00ff, #3d003d);
-            border-radius: 50%;
-            box-shadow: 0 0 20px var(--glow-color-2), 0 0 40px var(--glow-color-2), inset 0 0 30px #000;
-        }
-        
-        .layer-3 .crystal {
-            width: 80px;
-            height: 80px;
-            background-color: var(--glow-color-1);
-            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+            right: 0;
+            bottom: 0;
+            border-radius: 20px;
+            background: radial-gradient(
+                circle at var(--pointerX) var(--pointerY),
+                rgba(150, 150, 255, 0.3),
+                transparent 40%
+            );
             opacity: 0.8;
-            filter: drop-shadow(0 0 15px var(--glow-color-1));
+            transition: background 0.1s linear;
+            will-change: background;
         }
 
-        .layer-4 .ring {
-            width: 300px;
-            height: 300px;
-            border: 2px solid var(--glow-color-3);
-            border-radius: 50%;
-            box-shadow: 0 0 15px var(--glow-color-3), inset 0 0 15px var(--glow-color-3);
+        /* Borde de neón */
+        .card::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 22px;
+            background: conic-gradient(
+                from 180deg at 50% 50%,
+                #00c2ff 0%,
+                #ff00e6 50%,
+                #00c2ff 100%
+            );
+            z-index: -1;
+            filter: blur(5px);
+            animation: spin 5s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .card-content {
+            /* Mueve el contenido hacia el espectador para el efecto de profundidad */
+            transform: translateZ(50px);
+            text-align: center;
+        }
+
+        .card-content h2 {
+            font-size: 2rem;
+            color: #fff;
+            text-shadow: 0 0 10px #00c2ff, 0 0 20px #ff00e6;
+            margin: 0;
+        }
+
+        .card-content p {
+            font-size: 1rem;
+            color: #c0c0ff;
+            margin-top: 10px;
         }
         
-        .overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-            background-color: rgba(0, 0, 0, 0.7);
-            padding: 2em;
-            border-radius: 15px;
-            border: 1px solid var(--glow-color-1);
-            box-shadow: 0 0 20px var(--glow-color-1);
-        }
-
-        h1 {
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px var(--glow-color-1);
-        }
-
-        #permission-button {
-            background-color: transparent;
-            border: 2px solid var(--glow-color-2);
-            color: var(--glow-color-2);
-            padding: 10px 20px;
+        .permission-button {
+            display: none; /* Oculto por defecto */
+            padding: 15px 30px;
+            font-size: 1.2rem;
             font-family: 'Orbitron', sans-serif;
-            text-transform: uppercase;
-            font-size: 1em;
-            border-radius: 8px;
+            color: white;
+            background: #1e1e3f;
+            border: 2px solid #00c2ff;
+            border-radius: 10px;
             cursor: pointer;
+            box-shadow: 0 0 15px #00c2ff;
             transition: all 0.3s ease;
-            box-shadow: 0 0 10px var(--glow-color-2);
         }
 
-        #permission-button:hover {
-            background-color: var(--glow-color-2);
-            color: var(--bg-color);
-            box-shadow: 0 0 20px var(--glow-color-2), 0 0 30px var(--glow-color-2);
+        .permission-button:hover {
+            background: #00c2ff;
+            box-shadow: 0 0 25px #00c2ff, 0 0 40px #ff00e6;
+            color: #0a0a0f;
         }
+
     </style>
 </head>
 <body>
 
-    <div class="scene" id="scene">
-        <div class="layer layer-1" data-depth="0.1">
-            <div class="grid"></div>
-        </div>
-        <div class="layer layer-2" data-depth="0.2">
-            <div class="planet"></div>
-        </div>
-        <div class="layer layer-3" data-depth="0.6">
-             <div class="crystal"></div>
-        </div>
-        <div class="layer layer-4" data-depth="0.4">
-            <div class="ring"></div>
+    <div class="card-container" id="cardContainer">
+        <div class="card">
+            <div class="card-content">
+                <h2>WEB API</h2>
+                <p>Rendimiento Extremo</p>
+            </div>
         </div>
     </div>
-
-    <div class="overlay" id="overlay">
-        <h1>Giro-Paralaje</h1>
-        <p>Mueve tu dispositivo para controlar la escena.</p>
-        <button id="permission-button">Activar Sensores</button>
-    </div>
+    
+    <button id="permissionButton" class="permission-button">Activar Sensores</button>
 
     <script>
-        const scene = document.getElementById('scene');
-        const layers = document.querySelectorAll('.layer');
-        const overlay = document.getElementById('overlay');
-        const permissionButton = document.getElementById('permission-button');
+        // --- INICIO DE LA LÓGICA DE ALTO RENDIMIENTO ---
 
-        // --- NUEVO: Variables para la orientación inicial ---
-        let initialBeta = null;
-        let initialGamma = null;
+        const cardContainer = document.getElementById('cardContainer');
+        const permissionButton = document.getElementById('permissionButton');
+        
+        const MAX_ROTATION = 15; // Grados máximos de inclinación
+        let lastCall = 0;
+        const THROTTLE_INTERVAL = 1000 / 60; // Limitar a 60 FPS
 
-        // Variables para el movimiento relativo
-        let relativeGamma = 0;
-        let relativeBeta = 0;
-
-        function animate() {
-            layers.forEach(layer => {
-                const depth = parseFloat(layer.getAttribute('data-depth'));
-                
-                // Usamos los valores relativos para el cálculo
-                const moveX = relativeGamma * depth * 25; 
-                const moveY = relativeBeta * depth * 25;
-
-                layer.style.transform = `translate3d(${moveX}px, ${moveY}px, 0)`;
-            });
-
-            requestAnimationFrame(animate);
-        }
-
+        // Función principal que actualiza las variables CSS
         function handleOrientation(event) {
-            // --- LÓGICA MODIFICADA ---
-
-            // 1. Si es la primera vez que recibimos datos, establecemos la posición inicial.
-            if (initialBeta === null || initialGamma === null) {
-                initialBeta = event.beta;
-                initialGamma = event.gamma;
+            // Throttling: Asegura que no procesamos el evento más rápido que la tasa de refresco
+            const now = performance.now();
+            if (now - lastCall < THROTTLE_INTERVAL) {
+                return;
             }
+            lastCall = now;
 
-            // 2. Calculamos la diferencia (delta) entre la posición actual y la inicial.
-            const currentBeta = event.beta;
-            const currentGamma = event.gamma;
+            // `beta` es la inclinación adelante/atrás, `gamma` es la inclinación izquierda/derecha
+            const { beta, gamma } = event;
 
-            relativeBeta = currentBeta - initialBeta;
-            relativeGamma = currentGamma - initialGamma;
+            // Mapeamos los valores del giroscopio a un rango de rotación más pequeño
+            const rotateX = (Math.min(Math.max(beta, -90), 90) / 90) * -MAX_ROTATION;
+            const rotateY = (Math.min(Math.max(gamma, -90), 90) / 90) * MAX_ROTATION;
+
+            // Usamos requestAnimationFrame para la actualización más fluida posible
+            // El navegador ejecutará esto justo antes del próximo repintado
+            window.requestAnimationFrame(() => {
+                // Actualizamos las propiedades personalizadas de CSS.
+                // Esta es la parte clave: JS no toca el estilo directamente,
+                // solo le pasa los datos a CSS.
+                cardContainer.style.setProperty('--rotateX', `${rotateX}deg`);
+                cardContainer.style.setProperty('--rotateY', `${rotateY}deg`);
+
+                // Actualizamos la posición del brillo para simular un reflejo
+                const pointerX = (gamma + 90) / 180 * 100;
+                const pointerY = (beta + 90) / 180 * 100;
+                cardContainer.style.setProperty('--pointerX', `${pointerX}%`);
+                cardContainer.style.setProperty('--pointerY', `${pointerY}%`);
+            });
         }
 
-        function requestDeviceOrientation() {
+        // Función para solicitar permisos en iOS 13+
+        function requestDeviceOrientationPermission() {
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                DeviceOrientationEvent.requestPermission()
-                    .then(permissionState => {
-                        if (permissionState === 'granted') {
-                            window.addEventListener('deviceorientation', handleOrientation);
-                            overlay.style.display = 'none';
-                            animate();
-                        } else {
-                            alert('Permiso denegado. No se puede activar el giroscopio.');
-                        }
-                    })
-                    .catch(console.error);
+                // Navegadores basados en WebKit (Safari en iOS)
+                permissionButton.style.display = 'block';
+                cardContainer.style.display = 'none';
+
+                permissionButton.onclick = () => {
+                    DeviceOrientationEvent.requestPermission()
+                        .then(permissionState => {
+                            if (permissionState === 'granted') {
+                                window.addEventListener('deviceorientation', handleOrientation);
+                                permissionButton.style.display = 'none';
+                                cardContainer.style.display = 'block';
+                            } else {
+                                alert('Permiso denegado. El efecto no funcionará.');
+                            }
+                        })
+                        .catch(console.error);
+                };
             } else {
+                // Otros navegadores (Android) no necesitan permiso explícito
                 window.addEventListener('deviceorientation', handleOrientation);
-                overlay.style.display = 'none';
-                animate();
             }
         }
+        
+        // Iniciar el proceso
+        requestDeviceOrientationPermission();
 
-        if (window.DeviceOrientationEvent) {
-            permissionButton.addEventListener('click', requestDeviceOrientation);
-        } else {
-            overlay.innerHTML = "<h1>API No Soportada</h1><p>Tu navegador no es compatible con la Device Orientation API.</p>";
-        }
+        // --- FIN DE LA LÓGICA DE ALTO RENDIMIENTO ---
     </script>
 </body>
 </html>
