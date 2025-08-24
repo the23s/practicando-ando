@@ -3,230 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tarjeta Holográfica 3D con Giroscopio</title>
+    <title>Demo: Device Orientation API</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
-
-        :root {
-            /* Variables CSS que controlaremos con JavaScript */
-            --rotateX: 0deg;
-            --rotateY: 0deg;
-            --pointerX: 50%;
-            --pointerY: 50%;
-        }
-
         body {
+            font-family: 'VT323', monospace;
+            background-color: #F5F5F5;
+            color: #111;
+            margin: 0;
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            background-color: #0a0a0f;
-            font-family: 'Orbitron', sans-serif;
-            color: #e0e0e0;
-            perspective: 1000px; /* Activa el espacio 3D para los hijos */
             overflow: hidden;
         }
 
-        .card-container {
-            width: clamp(300px, 80vw, 400px);
-            height: 500px;
-            /* Le damos al contenedor la capacidad de tener hijos en un espacio 3D */
-            transform-style: preserve-3d;
-            /* La transformación se aplica aquí, usando nuestras variables */
-            transform: rotateX(var(--rotateX)) rotateY(var(--rotateY));
-            transition: transform 0.1s linear; /* Suaviza el movimiento */
-            /* will-change es una pista para el navegador para que optimice la animación */
-            will-change: transform;
+        /* El contenedor principal que define el espacio 3D */
+        .scene {
+            width: 80vw;
+            height: 80vh;
+            max-width: 400px;
+            max-height: 600px;
             position: relative;
+            
+            /* 'perspective' es la clave para crear la sensación de profundidad.
+               Un valor más bajo significa una perspectiva más extrema. */
+            perspective: 1000px;
         }
 
+        /* El 'card' es el elemento que rotará. 'preserve-3d' hace que sus
+           hijos también vivan en el mismo espacio 3D. */
         .card {
-            position: absolute;
             width: 100%;
             height: 100%;
-            border-radius: 20px;
-            background: rgba(20, 20, 40, 0.6);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(128, 128, 255, 0.3);
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            position: relative;
             transform-style: preserve-3d;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            box-sizing: border-box;
+            transition: transform 0.1s linear; /* Suaviza el movimiento */
+            border: 4px solid #111;
+            background-color: #FAFAFA;
         }
 
-        /* Capa de brillo que reacciona a la inclinación */
-        .card::before {
-            content: '';
+        .card-layer {
             position: absolute;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 0;
-            border-radius: 20px;
-            background: radial-gradient(
-                circle at var(--pointerX) var(--pointerY),
-                rgba(150, 150, 255, 0.3),
-                transparent 40%
-            );
-            opacity: 0.8;
-            transition: background 0.1s linear;
-            will-change: background;
-        }
-
-        /* Borde de neón */
-        .card::after {
-            content: '';
-            position: absolute;
-            inset: -2px;
-            border-radius: 22px;
-            background: conic-gradient(
-                from 180deg at 50% 50%,
-                #00c2ff 0%,
-                #ff00e6 50%,
-                #00c2ff 100%
-            );
-            z-index: -1;
-            filter: blur(5px);
-            animation: spin 5s linear infinite;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .card-content {
-            /* Mueve el contenido hacia el espectador para el efecto de profundidad */
-            transform: translateZ(50px);
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             text-align: center;
+            padding: 2rem;
+            box-sizing: border-box;
         }
 
-        .card-content h2 {
-            font-size: 2rem;
-            color: #fff;
-            text-shadow: 0 0 10px #00c2ff, 0 0 20px #ff00e6;
-            margin: 0;
+        /* Cada capa se empuja a una profundidad (eje Z) diferente.
+           Valores positivos lo acercan, negativos lo alejan. */
+        .background-layer {
+            transform: translateZ(-100px) scale(1.5);
+            font-size: 8rem;
+            color: #e0e0e0;
         }
 
-        .card-content p {
-            font-size: 1rem;
-            color: #c0c0ff;
-            margin-top: 10px;
+        .text-layer {
+            transform: translateZ(50px);
+            flex-direction: column;
         }
         
-        .permission-button {
-            display: none; /* Oculto por defecto */
-            padding: 15px 30px;
+        .text-layer h1 {
+            font-size: 3rem;
+            margin: 0;
+            background-color: #FFFF00;
+            padding: 0.5rem 1rem;
+            border: 4px solid #111;
+        }
+
+        .text-layer p {
             font-size: 1.2rem;
-            font-family: 'Orbitron', sans-serif;
-            color: white;
-            background: #1e1e3f;
-            border: 2px solid #00c2ff;
-            border-radius: 10px;
+            margin-top: 1rem;
+        }
+
+        #permission-button, #fallback-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'VT323', monospace;
+            font-size: 1.5rem;
+            padding: 1rem 2rem;
+            border: 4px solid #111;
+            background-color: #00FF00;
             cursor: pointer;
-            box-shadow: 0 0 15px #00c2ff;
-            transition: all 0.3s ease;
+            z-index: 100;
+            text-align: center;
         }
-
-        .permission-button:hover {
-            background: #00c2ff;
-            box-shadow: 0 0 25px #00c2ff, 0 0 40px #ff00e6;
-            color: #0a0a0f;
+        
+        #fallback-message {
+            background-color: #FFC107;
+            cursor: default;
+            display: none; /* Oculto por defecto */
         }
-
     </style>
 </head>
 <body>
 
-    <div class="card-container" id="cardContainer">
-        <div class="card">
-            <div class="card-content">
-                <h2>WEB API</h2>
-                <p>Rendimiento Extremo</p>
+    <div class="scene">
+        <div class="card" id="card">
+            <div class="card-layer background-layer">API</div>
+            <div class="card-layer text-layer">
+                <h1>GYRO-FX</h1>
+                <p>Mueve tu dispositivo para controlar la perspectiva.</p>
             </div>
         </div>
     </div>
-    
-    <button id="permissionButton" class="permission-button">Activar Sensores</button>
+
+    <button id="permission-button">Activar Efecto</button>
+    <div id="fallback-message">Abre en un móvil con giroscopio para ver el efecto.</div>
 
     <script>
-        // --- INICIO DE LA LÓGICA DE ALTO RENDIMIENTO ---
+        const card = document.getElementById('card');
+        const permissionButton = document.getElementById('permission-button');
+        const fallbackMessage = document.getElementById('fallback-message');
+        let rafId = null;
 
-        const cardContainer = document.getElementById('cardContainer');
-        const permissionButton = document.getElementById('permissionButton');
-        
-        const MAX_ROTATION = 15; // Grados máximos de inclinación
-        let lastCall = 0;
-        const THROTTLE_INTERVAL = 1000 / 60; // Limitar a 60 FPS
-
-        // Función principal que actualiza las variables CSS
         function handleOrientation(event) {
-            // Throttling: Asegura que no procesamos el evento más rápido que la tasa de refresco
-            const now = performance.now();
-            if (now - lastCall < THROTTLE_INTERVAL) {
-                return;
-            }
-            lastCall = now;
-
-            // `beta` es la inclinación adelante/atrás, `gamma` es la inclinación izquierda/derecha
+            // event.beta es la inclinación adelante-atrás (-180 a 180)
+            // event.gamma es la inclinación izquierda-derecha (-90 a 90)
             const { beta, gamma } = event;
 
-            // Mapeamos los valores del giroscopio a un rango de rotación más pequeño
-            const rotateX = (Math.min(Math.max(beta, -90), 90) / 90) * -MAX_ROTATION;
-            const rotateY = (Math.min(Math.max(gamma, -90), 90) / 90) * MAX_ROTATION;
+            // Cancelamos el frame anterior para evitar trabajo innecesario
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+            }
+            
+            // Usamos requestAnimationFrame para actualizar la animación
+            // de forma sincronizada con el repintado del navegador.
+            // Esto es CRUCIAL para un rendimiento suave.
+            rafId = requestAnimationFrame(() => {
+                // Mapeamos los valores del giroscopio a un rango de rotación más pequeño
+                // para que el efecto sea sutil y controlable.
+                const rotateX = (beta - 90) * -0.15; // Invertimos y reducimos el rango
+                const rotateY = gamma * 0.15;
 
-            // Usamos requestAnimationFrame para la actualización más fluida posible
-            // El navegador ejecutará esto justo antes del próximo repintado
-            window.requestAnimationFrame(() => {
-                // Actualizamos las propiedades personalizadas de CSS.
-                // Esta es la parte clave: JS no toca el estilo directamente,
-                // solo le pasa los datos a CSS.
-                cardContainer.style.setProperty('--rotateX', `${rotateX}deg`);
-                cardContainer.style.setProperty('--rotateY', `${rotateY}deg`);
-
-                // Actualizamos la posición del brillo para simular un reflejo
-                const pointerX = (gamma + 90) / 180 * 100;
-                const pointerY = (beta + 90) / 180 * 100;
-                cardContainer.style.setProperty('--pointerX', `${pointerX}%`);
-                cardContainer.style.setProperty('--pointerY', `${pointerY}%`);
+                // Aplicamos la transformación al elemento 'card'.
+                // La GPU se encarga de todo el trabajo pesado de renderizado 3D.
+                card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
             });
         }
-
-        // Función para solicitar permisos en iOS 13+
+        
         function requestDeviceOrientationPermission() {
+            // La nueva especificación requiere pedir permiso explícitamente.
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                // Navegadores basados en WebKit (Safari en iOS)
-                permissionButton.style.display = 'block';
-                cardContainer.style.display = 'none';
-
-                permissionButton.onclick = () => {
-                    DeviceOrientationEvent.requestPermission()
-                        .then(permissionState => {
-                            if (permissionState === 'granted') {
-                                window.addEventListener('deviceorientation', handleOrientation);
-                                permissionButton.style.display = 'none';
-                                cardContainer.style.display = 'block';
-                            } else {
-                                alert('Permiso denegado. El efecto no funcionará.');
-                            }
-                        })
-                        .catch(console.error);
-                };
+                DeviceOrientationEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState === 'granted') {
+                            window.addEventListener('deviceorientation', handleOrientation);
+                            permissionButton.style.display = 'none';
+                        } else {
+                            permissionButton.textContent = 'Permiso denegado';
+                            permissionButton.disabled = true;
+                        }
+                    })
+                    .catch(console.error);
             } else {
-                // Otros navegadores (Android) no necesitan permiso explícito
+                // Para navegadores más antiguos o que no requieren permiso (como en Android)
                 window.addEventListener('deviceorientation', handleOrientation);
+                permissionButton.style.display = 'none';
             }
         }
-        
-        // Iniciar el proceso
-        requestDeviceOrientationPermission();
 
-        // --- FIN DE LA LÓGICA DE ALTO RENDIMIENTO ---
+        // Comprobamos si la API es compatible al cargar la página.
+        if (window.DeviceOrientationEvent) {
+            permissionButton.addEventListener('click', requestDeviceOrientationPermission);
+            fallbackMessage.style.display = 'none';
+        } else {
+            permissionButton.style.display = 'none';
+            fallbackMessage.style.display = 'block';
+        }
+
     </script>
 </body>
 </html>
