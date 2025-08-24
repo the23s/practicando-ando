@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paralaje Futurista con Giroscopio</title>
+    <title>Paralaje Futurista con Giroscopio (Movimiento Relativo)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
 
@@ -36,7 +36,6 @@
             perspective: 1000px; /* Añade perspectiva para efectos 3D */
         }
 
-        /* Cada capa del paralaje */
         .layer {
             position: absolute;
             top: 0;
@@ -46,13 +45,10 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            /* Optimizacion CLAVE: le decimos al navegador que se prepare para transformar este elemento */
             will-change: transform;
-            /* Transicion suave para que el movimiento no sea brusco */
             transition: transform 0.1s ease-out;
         }
 
-        /* Estilos de las capas para el look "Futurista con Neones" */
         .layer-1 .grid {
             width: 120%;
             height: 120%;
@@ -132,15 +128,12 @@
 <body>
 
     <div class="scene" id="scene">
-        <!-- Capa más lejana, se mueve menos -->
         <div class="layer layer-1" data-depth="0.1">
             <div class="grid"></div>
         </div>
-        <!-- Capa intermedia -->
         <div class="layer layer-2" data-depth="0.2">
             <div class="planet"></div>
         </div>
-        <!-- Capa más cercana, se mueve más -->
         <div class="layer layer-3" data-depth="0.6">
              <div class="crystal"></div>
         </div>
@@ -156,55 +149,57 @@
     </div>
 
     <script>
-        // --- 1. CONFIGURACION INICIAL ---
         const scene = document.getElementById('scene');
         const layers = document.querySelectorAll('.layer');
         const overlay = document.getElementById('overlay');
         const permissionButton = document.getElementById('permission-button');
 
-        // Variables para almacenar los valores del giroscopio
-        let gamma = 0;
-        let beta = 0;
+        // --- NUEVO: Variables para la orientación inicial ---
+        let initialBeta = null;
+        let initialGamma = null;
 
-        // --- 2. BUCLE DE ANIMACION (OPTIMIZACION DE RENDIMIENTO) ---
-        // Usamos requestAnimationFrame para actualizar el DOM solo cuando el navegador
-        // está listo para pintar un nuevo frame. Esto es MUCHO más eficiente que
-        // actualizar el CSS directamente en el event listener.
+        // Variables para el movimiento relativo
+        let relativeGamma = 0;
+        let relativeBeta = 0;
+
         function animate() {
             layers.forEach(layer => {
                 const depth = parseFloat(layer.getAttribute('data-depth'));
                 
-                // Calculamos el desplazamiento para cada capa.
-                // Multiplicamos los valores del giroscopio por la "profundidad" y un factor
-                // para que el efecto sea sutil y controlable.
-                const moveX = gamma * depth * 25; 
-                const moveY = beta * depth * 25;
+                // Usamos los valores relativos para el cálculo
+                const moveX = relativeGamma * depth * 25; 
+                const moveY = relativeBeta * depth * 25;
 
-                // Aplicamos la transformación 3D. Usar translate3d fuerza la aceleración por GPU.
                 layer.style.transform = `translate3d(${moveX}px, ${moveY}px, 0)`;
             });
 
-            // Continuamos el bucle en el siguiente frame.
             requestAnimationFrame(animate);
         }
 
-        // --- 3. MANEJO DE EVENTOS Y PERMISOS ---
         function handleOrientation(event) {
-            // Actualizamos las variables con los nuevos datos del sensor.
-            // Los valores se limitan para evitar movimientos extremos.
-            gamma = Math.max(-90, Math.min(90, event.gamma)); // Izquierda/Derecha
-            beta = Math.max(-90, Math.min(90, event.beta));   // Adelante/Atrás
+            // --- LÓGICA MODIFICADA ---
+
+            // 1. Si es la primera vez que recibimos datos, establecemos la posición inicial.
+            if (initialBeta === null || initialGamma === null) {
+                initialBeta = event.beta;
+                initialGamma = event.gamma;
+            }
+
+            // 2. Calculamos la diferencia (delta) entre la posición actual y la inicial.
+            const currentBeta = event.beta;
+            const currentGamma = event.gamma;
+
+            relativeBeta = currentBeta - initialBeta;
+            relativeGamma = currentGamma - initialGamma;
         }
 
         function requestDeviceOrientation() {
-            // Esta función es CRÍTICA para iOS 13+ y algunos navegadores
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
                 DeviceOrientationEvent.requestPermission()
                     .then(permissionState => {
                         if (permissionState === 'granted') {
                             window.addEventListener('deviceorientation', handleOrientation);
                             overlay.style.display = 'none';
-                            // Iniciamos el bucle de animación una vez que tenemos permiso
                             animate();
                         } else {
                             alert('Permiso denegado. No se puede activar el giroscopio.');
@@ -212,15 +207,12 @@
                     })
                     .catch(console.error);
             } else {
-                // Para navegadores que no requieren permiso explícito
                 window.addEventListener('deviceorientation', handleOrientation);
                 overlay.style.display = 'none';
                 animate();
             }
         }
 
-        // --- 4. INICIALIZACION ---
-        // Comprobamos si la API es compatible
         if (window.DeviceOrientationEvent) {
             permissionButton.addEventListener('click', requestDeviceOrientation);
         } else {
